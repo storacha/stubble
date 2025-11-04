@@ -1,8 +1,6 @@
 package stubble
 
 import (
-	"fmt"
-
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/list"
@@ -18,10 +16,9 @@ func Run(stories []Story) error {
 				}
 			} else {
 				m := Model{
-					stories: stories,
+					stories:           stories,
+					currentStoryIndex: int(data[0]),
 				}
-				fmt.Printf("Data in Run: %v\n", data)
-				m.Update(m.switchStory(int(data[0])))
 				return m
 			}
 		},
@@ -43,7 +40,9 @@ type Story struct {
 }
 
 func (m Model) Init() tea.Cmd {
-	return m.switchStory(0)
+	// We haven't "switched to" the current story to initialize it yet, so do that
+	// now.
+	return m.switchStory(m.currentStoryIndex)
 }
 
 type switchStoryMsg int
