@@ -8,21 +8,20 @@ import (
 )
 
 func Run(stories []Story) error {
-	_, err := resteep.Resteep(
-		func(data []byte) resteep.ResteepableModel {
-			if data == nil {
-				return Model{
-					stories: stories,
+	err := resteep.Resteep(
+		resteep.RunBubbleTea(
+			func(data []byte) (Model, error) {
+				m := Model{stories: stories}
+				if len(data) > 0 {
+					m.currentStoryIndex = int(data[0])
 				}
-			} else {
-				m := Model{
-					stories:           stories,
-					currentStoryIndex: int(data[0]),
-				}
-				return m
-			}
-		},
-		tea.WithAltScreen(),
+				return m, nil
+			},
+			func(m Model) ([]byte, error) {
+				return []byte{byte(m.currentStoryIndex)}, nil
+			},
+			tea.WithAltScreen(),
+		),
 	)
 	return err
 }
@@ -126,10 +125,6 @@ func (m Model) View() (result string) {
 		m.storyListStyle().Render(l.String()),
 		storyView,
 	)
-}
-
-func (m Model) Marshal() ([]byte, error) {
-	return []byte{byte(m.currentStoryIndex)}, nil
 }
 
 var storyEnumeratorStyle = lipgloss.NewStyle().
