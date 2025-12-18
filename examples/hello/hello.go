@@ -23,6 +23,14 @@ func main() {
 				}
 			},
 		},
+		{
+			Title: "Hello World with more text",
+			NewModel: func() tea.Model {
+				return model{
+					text: "oh, hello!",
+				}
+			},
+		},
 	})
 
 	if err != nil {

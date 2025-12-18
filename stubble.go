@@ -103,11 +103,68 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+var halfBlockBorder = lipgloss.Border{
+	Top:         "▄",
+	Bottom:      "▀",
+	Left:        "▐",
+	Right:       "▌",
+	TopLeft:     "▗",
+	TopRight:    "▖",
+	BottomLeft:  "▝",
+	BottomRight: "▘",
+}
+
+const selectedStoryForeground = lipgloss.Color("205")
+const selectedStoryBackground = lipgloss.Color("#333333")
+
+// noEnumeratorList creates a [list.List] without any enumerators or
+// indentation. Only the items themselves render.
+func noEnumeratorList() *list.List {
+	return list.New().
+		Indenter(func(items list.Items, index int) string { return "" }).
+		Enumerator(func(items list.Items, i int) string { return "" }).
+		EnumeratorStyle(lipgloss.NewStyle())
+}
+
 func (m Model) View() (result string) {
-	l := list.New().
-		Enumerator(m.storyEnumerator).
-		EnumeratorStyle(storyEnumeratorStyle).
-		ItemStyle(lipgloss.NewStyle().Width(storyListStyle.GetWidth() - 2))
+	l := noEnumeratorList().
+		ItemStyleFunc(func(items list.Items, i int) lipgloss.Style {
+			style := lipgloss.NewStyle().
+				Width(storyListStyle.GetWidth() - 2)
+
+			if i == m.currentStoryIndex {
+				// Extend the border to the left side to surround highlight bar.
+				border := halfBlockBorder
+				border.TopLeft = border.Top
+				border.BottomLeft = border.Bottom
+
+				return style.
+					Background(selectedStoryBackground).
+					Foreground(selectedStoryForeground).
+					Bold(true).
+					Border(border, true, false, true, true).
+					BorderForeground(selectedStoryBackground).
+					BorderLeftBackground(selectedStoryForeground)
+			}
+
+			style = style.
+				Faint(true).
+				MarginLeft(1).
+				MarginRight(1).
+				MarginBottom(1)
+
+			if i == 0 {
+				style = style.
+					MarginTop(1)
+			}
+
+			if i == m.currentStoryIndex-1 {
+				style = style.
+					MarginBottom(0)
+			}
+
+			return style
+		})
 
 	for _, s := range m.stories {
 		l.Item(s.Title)
@@ -122,27 +179,31 @@ func (m Model) View() (result string) {
 
 	return lipgloss.JoinHorizontal(
 		lipgloss.Top,
-		m.storyListStyle().Render(l.String()),
+		m.sidebarStyle().Render(
+			lipgloss.JoinVertical(lipgloss.Center,
+				logoStyle.Render(logo),
+				storyListStyle.Render(l.String()),
+			)),
 		storyView,
 	)
 }
 
-var storyEnumeratorStyle = lipgloss.NewStyle().
-	Foreground(lipgloss.Color("#888888")).
-	MarginRight(1)
+// https://patorjk.com/software/taag/#p=display&f=Small+Braille&t=Stubble (compressed)
+const logo = `⢎⡑⣰⡀⡀⢀⣇⡀⣇⡀⡇⢀⡀
+⠢⠜⠘⠤⠣⠼⠧⠜⠧⠜⠣⠣⠭`
+
+var logoStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#00c3d4ff"))
 
 var storyListStyle = lipgloss.NewStyle().
-	Width(20).
-	Border(lipgloss.NormalBorder(), false, true, false, false).
-	MarginRight(3)
+	Width(21)
 
-func (m Model) storyListStyle() lipgloss.Style {
-	return storyListStyle.Height(m.windowSize.Height)
+func (m Model) fullHeight() lipgloss.Style {
+	return lipgloss.NewStyle().Height(m.windowSize.Height)
 }
 
-func (m Model) storyEnumerator(items list.Items, i int) string {
-	if i == m.currentStoryIndex {
-		return "➤"
-	}
-	return " "
+func (m Model) sidebarStyle() lipgloss.Style {
+	return m.fullHeight().
+		Border(lipgloss.NormalBorder(), false, true, false, false).
+		BorderForeground(lipgloss.Color("#555555")).
+		MarginRight(3)
 }
